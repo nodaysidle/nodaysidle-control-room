@@ -4,7 +4,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="NODAYSIDLE Control Room"
 EXEC_NAME="NODAYSIDLEControlRoom"
 APP="$ROOT/$APP_NAME.app"
-VERSION="0.1.1"
+VERSION="0.1.2"
 BUILD="1"
 cd "$ROOT"
 swift build -c release
