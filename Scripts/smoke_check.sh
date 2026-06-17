@@ -7,3 +7,5 @@ open -n "$APP"
 sleep 3
 pgrep -fl "NODAYSIDLEControlRoom" >/tmp/nodaysidle-control-room-smoke.txt
 cat /tmp/nodaysidle-control-room-smoke.txt
+osascript -e 'tell application "System Events" to tell process "NODAYSIDLEControlRoom" to get {name of windows, position of window 1, size of window 1}'
+osascript -e 'tell application "NODAYSIDLE Control Room" to quit' >/dev/null 2>&1 || true

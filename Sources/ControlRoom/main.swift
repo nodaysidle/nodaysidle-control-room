@@ -2,21 +2,6 @@ import SwiftUI
 import AppKit
 import ControlRoomCore
 
-@main
-struct NODAYSIDLEControlRoomApp: App {
-    @StateObject private var model = DashboardViewModel()
-    var body: some Scene {
-        MenuBarExtra {
-            MenuBarPanel(model: model)
-        } label: {
-            Image(systemName: model.snapshot.overallState == .attention ? "bolt.trianglebadge.exclamationmark.fill" : "bolt.circle.fill")
-        }
-        Window("NODAYSIDLE Control Room", id: "control-room") {
-            ControlRoomWindow(model: model).frame(minWidth: 1120, minHeight: 720).onAppear { model.refresh() }
-        }.defaultSize(width: 1280, height: 820)
-    }
-}
-
 @MainActor
 final class DashboardViewModel: ObservableObject {
     @Published var snapshot = SystemSnapshot(generatedAt: .now, processes: [], repos: [], bridges: [], receipts: [])
@@ -27,9 +12,72 @@ final class DashboardViewModel: ObservableObject {
     func copy(_ text: String) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string) }
 }
 
-struct MenuBarPanel: View {
-    @ObservedObject var model: DashboardViewModel
-    var body: some View { Button("Open Control Room") { NSApp.activate(ignoringOtherApps: true) }; Divider(); Label(model.snapshot.overallState.rawValue, systemImage: model.snapshot.overallState.symbol); Text("Agents: \(model.snapshot.processes.count)"); Text("Dirty repos: \(model.snapshot.repos.filter { $0.dirtyCount > 0 }.count)"); Text("Live bridges: \(model.snapshot.bridges.filter { $0.state == .live }.count)"); Divider(); Button("Refresh Scan") { model.refresh() }; Button("Quit") { NSApp.terminate(nil) } }
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    let model = DashboardViewModel()
+    var window: NSWindow?
+    var statusItem: NSStatusItem?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
+        createStatusItem()
+        showWindow()
+        model.refresh()
+        if ProcessInfo.processInfo.environment["CONTROL_ROOM_SCREENSHOT_PATH"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+                self?.writeSelfScreenshotIfRequested()
+            }
+        }
+    }
+
+    func writeSelfScreenshotIfRequested() {
+        guard let path = ProcessInfo.processInfo.environment["CONTROL_ROOM_SCREENSHOT_PATH"], let view = window?.contentView else { return }
+        let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) ?? NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(view.bounds.width), pixelsHigh: Int(view.bounds.height), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        guard let rep else { return }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        if let data = rep.representation(using: .png, properties: [:]) {
+            try? data.write(to: URL(fileURLWithPath: path))
+        }
+        if ProcessInfo.processInfo.environment["CONTROL_ROOM_SCREENSHOT_EXIT"] == "1" {
+            NSApp.terminate(nil)
+        }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func showWindow() {
+        if window == nil {
+            let root = ControlRoomWindow(model: model)
+                .frame(minWidth: 1120, minHeight: 720)
+            let hosting = NSHostingView(rootView: root)
+            let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            win.title = "NODAYSIDLE Control Room"
+            win.contentView = hosting
+            win.isReleasedWhenClosed = false
+            win.minSize = NSSize(width: 1120, height: 720)
+            win.center()
+            window = win
+        }
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func createStatusItem() {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.image = NSImage(systemSymbolName: "bolt.circle.fill", accessibilityDescription: "NODAYSIDLE Control Room")
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Open Control Room", action: #selector(openFromMenu), keyEquivalent: "o"))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Refresh Scan", action: #selector(refreshFromMenu), keyEquivalent: "r"))
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitFromMenu), keyEquivalent: "q"))
+        for item in menu.items { item.target = self }
+        item.menu = menu
+        statusItem = item
+    }
+
+    @objc func openFromMenu() { showWindow() }
+    @objc func refreshFromMenu() { model.refresh() }
+    @objc func quitFromMenu() { NSApp.terminate(nil) }
 }
 
 struct ControlRoomWindow: View {
@@ -56,3 +104,8 @@ struct PremiumBackground: View { var body: some View { ZStack { LinearGradient(c
 struct LogoMark: View { var body: some View { ZStack { RoundedRectangle(cornerRadius: 16).fill(.black.opacity(0.8)); RoundedRectangle(cornerRadius: 16).stroke(Color.volt, lineWidth: 1.6); Text("NDI").font(.system(size: 16, weight: .black, design: .monospaced)).foregroundStyle(Color.volt); Circle().stroke(Color.volt.opacity(0.34), lineWidth: 1).frame(width: 38, height: 38) } } }
 extension Color { static let volt = Color(red: 0.784, green: 1.0, blue: 0.0) }
 extension SignalState { var color: Color { switch self { case .live: return .volt; case .attention: return Color(red: 1.0, green: 0.62, blue: 0.18); case .idle: return Color(red: 0.55, green: 0.62, blue: 0.66); case .unknown: return Color(red: 0.45, green: 0.74, blue: 1.0) } }; var symbol: String { switch self { case .live: return "bolt.circle.fill"; case .attention: return "exclamationmark.triangle.fill"; case .idle: return "moon.circle"; case .unknown: return "questionmark.circle" } } }
+
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+app.run()

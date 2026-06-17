@@ -13,21 +13,25 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp ".build/release/$EXEC_NAME" "$APP/Contents/MacOS/$EXEC_NAME"
 cp "Assets/Logo/nodaysidle-control-room.svg" "$APP/Contents/Resources/nodaysidle-control-room.svg"
 ICONSET="$ROOT/.build/Icon.iconset"
-rm -rf "$ICONSET"; mkdir -p "$ICONSET"
-python3 - <<'PY'
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
-root = Path.cwd(); iconset = root/'.build/Icon.iconset'
-for size, scale in [(16,1),(16,2),(32,1),(32,2),(128,1),(128,2),(256,1),(256,2),(512,1),(512,2)]:
-    px=size*scale; img=Image.new('RGBA',(px,px),(5,6,4,255)); d=ImageDraw.Draw(img)
-    d.rounded_rectangle([int(px*.07),int(px*.07),int(px*.93),int(px*.93)], radius=int(px*.20), outline=(200,255,0,255), width=max(2,px//36))
-    d.ellipse([int(px*.22),int(px*.22),int(px*.78),int(px*.78)], outline=(200,255,0,96), width=max(1,px//64))
-    try: font=ImageFont.truetype('/System/Library/Fonts/SFNSMono.ttf', int(px*.20))
-    except Exception: font=ImageFont.load_default()
-    box=d.textbbox((0,0),'NDI',font=font); d.text(((px-(box[2]-box[0]))/2,(px-(box[3]-box[1]))/2),'NDI',fill=(200,255,0,255),font=font)
-    suffix=f'{size}x{size}' + (f'@{scale}x' if scale>1 else '')
-    img.save(iconset/f'icon_{suffix}.png')
-PY
+SVG_SOURCE="$ROOT/Assets/Logo/nodaysidle-control-room.svg"
+SVG_RENDER_DIR="$ROOT/.build/svg-render"
+SVG_RENDER="$SVG_RENDER_DIR/nodaysidle-control-room.svg.png"
+rm -rf "$ICONSET" "$SVG_RENDER_DIR"
+mkdir -p "$ICONSET" "$SVG_RENDER_DIR"
+qlmanage -t -s 1024 -o "$SVG_RENDER_DIR" "$SVG_SOURCE" >/dev/null 2>&1
+if [ ! -f "$SVG_RENDER" ]; then
+  echo "failed to render SVG icon source: $SVG_SOURCE" >&2
+  exit 1
+fi
+for spec in 16:1 16:2 32:1 32:2 128:1 128:2 256:1 256:2 512:1 512:2; do
+  size="${spec%%:*}"
+  scale="${spec##*:}"
+  px=$((size * scale))
+  suffix="${size}x${size}"
+  if [ "$scale" != "1" ]; then suffix="${suffix}@${scale}x"; fi
+  cp "$SVG_RENDER" "$ICONSET/icon_${suffix}.png"
+  sips -z "$px" "$px" "$ICONSET/icon_${suffix}.png" >/dev/null
+ done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

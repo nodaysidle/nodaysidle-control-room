@@ -8,7 +8,7 @@ It shows real local status for:
 - local bridges and likely service ports
 - recent receipt files when present
 
-No cloud backend. No fake data. No destructive controls in v0.1.
+No cloud backend. No fake data. No destructive controls in v0.1. The v0.1 app is read-only: it observes local process, bridge, repo, and receipt state, then provides safe copy/open/refresh actions.
 
 ## Build
 
@@ -17,6 +17,7 @@ swift test
 swift build -c release
 Scripts/package_app.sh
 Scripts/install_app.sh
+Scripts/capture_screenshot.sh
 ```
 
 ## Install path

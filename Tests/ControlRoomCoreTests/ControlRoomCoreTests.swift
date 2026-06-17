@@ -29,4 +29,22 @@ final class ControlRoomCoreTests: XCTestCase {
         XCTAssertTrue(names.contains("Hermes Gateway"))
         XCTAssertTrue(names.contains("CodexPro MCP"))
     }
+
+    func testReceiptScannerRootOnlyFiltersSortsAndLimits() throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("control-room-receipts-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let old = root.appendingPathComponent("old-release.md")
+        let recent = root.appendingPathComponent("new-receipt.txt")
+        let ignored = root.appendingPathComponent("notes.md")
+        try "old".write(to: old, atomically: true, encoding: .utf8)
+        try "new".write(to: recent, atomically: true, encoding: .utf8)
+        try "ignored".write(to: ignored, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 10)], ofItemAtPath: old.path)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 20)], ofItemAtPath: recent.path)
+
+        let receipts = ReceiptScanner().scan(roots: [root.path], limit: 1)
+        XCTAssertEqual(receipts.count, 1)
+        XCTAssertEqual(receipts.first?.title, "new-receipt.txt")
+    }
 }
