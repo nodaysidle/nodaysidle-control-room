@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode (Swift 6)
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build release
+        run: swift build -c release
+
+      - name: Verify release binary exists
+        run: test -f .build/release/NODAYSIDLEControlRoom
+
+      - name: Package app
+        run: Scripts/package_app.sh
+
+      - name: Codesign verify
+        run: codesign --verify --deep --strict --verbose=2 "NODAYSIDLE Control Room.app"
+
+      - name: App bundle sanity
+        run: |
+          echo "=== App bundle contents ==="
+          ls -laR "NODAYSIDLE Control Room.app/Contents/"
+          echo "=== Info.plist ==="
+          plutil -p "NODAYSIDLE Control Room.app/Contents/Info.plist"
+
+      - name: Checksum release binary
+        run: shasum -a 256 .build/release/NODAYSIDLEControlRoom
+
+      - name: Checksum app bundle binary
+        run: shasum -a 256 "NODAYSIDLE Control Room.app/Contents/MacOS/NODAYSIDLEControlRoom"

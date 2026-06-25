@@ -8,6 +8,11 @@ VERSION="0.1.2"
 BUILD="1"
 cd "$ROOT"
 swift build -c release
+EXEC_PATH=".build/release/$EXEC_NAME"
+if [ ! -f "$EXEC_PATH" ]; then
+  echo "ERROR: release binary not found at $EXEC_PATH" >&2
+  exit 1
+fi
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp ".build/release/$EXEC_NAME" "$APP/Contents/MacOS/$EXEC_NAME"

@@ -32,10 +32,15 @@ NDI / local AI builder operating many NODAYSIDLE projects from a Mac.
 
 Premium, dark, sharp, compact, operator-grade. Volt accent `#C8FF00` is used for live/primary state, not decoration spam.
 
+## Config
+
+Users may optionally override watched repos and receipt roots via `~/.config/nodaysidle-control-room/config.json`. If absent, hardcoded NODAYSIDLE project paths are used as fallback defaults.
+
 ## Success Criteria
 
 - Native `.app` installed in `/Applications`.
 - Launches and renders real local state.
 - Swift tests and release build pass.
 - App icon comes from committed SVG source.
+- CI (GitHub Actions) validates build, package, and codesign on every push.
 - Project Pages presentation is updated after app is verified.

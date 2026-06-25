@@ -48,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func showWindow() {
         if window == nil {
             let root = ControlRoomWindow(model: model)
-                .frame(minWidth: 1120, minHeight: 720)
+                .frame(width: 1280, height: 820)
             let hosting = NSHostingView(rootView: root)
             let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
             win.title = "NODAYSIDLE Control Room"
@@ -82,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 struct ControlRoomWindow: View {
     @ObservedObject var model: DashboardViewModel
-    var body: some View { ZStack { PremiumBackground(); VStack(alignment: .leading, spacing: 18) { Header(model: model); MissionStrip(snapshot: model.snapshot); HStack(alignment: .top, spacing: 16) { AgentColumn(model: model); RepoColumn(model: model) }; HStack(alignment: .top, spacing: 16) { BridgeColumn(model: model); ReceiptColumn(model: model) } }.padding(24) }.foregroundStyle(.white) }
+    var body: some View { ZStack { PremiumBackground(); ScrollView { VStack(alignment: .leading, spacing: 18) { Header(model: model); MissionStrip(snapshot: model.snapshot); HStack(alignment: .top, spacing: 16) { AgentColumn(model: model); RepoColumn(model: model) }; HStack(alignment: .top, spacing: 16) { BridgeColumn(model: model); ReceiptColumn(model: model) } }.padding(24).frame(maxWidth: .infinity, alignment: .topLeading) } }.foregroundStyle(.white) }
 }
 
 struct Header: View {

@@ -7,11 +7,18 @@ public struct RepoScanner: Sendable {
         guard FileManager.default.fileExists(atPath: path + "/.git") else { return nil }
         let name = URL(fileURLWithPath: path).lastPathComponent
         let branch = git(["rev-parse", "--abbrev-ref", "HEAD"], path: path).cleaned(default: "UNKNOWN")
-        let status = git(["status", "--short"], path: path).output
-        let dirty = status.split(separator: "\n").count
+        let statusResult = git(["status", "--short"], path: path)
+        // Only count lines when git status succeeded; failure = unknown
+        let dirty: Int
+        let state: SignalState
+        if statusResult.exitCode == 0 {
+            let lines = statusResult.output.split(separator: "\n").count
+            dirty = lines
+            state = lines > 0 ? .attention : .live
+        } else { dirty = 0; state = .unknown }
         let remote = git(["remote", "get-url", "origin"], path: path).cleaned(default: "no-origin")
         let last = git(["log", "-1", "--pretty=%h %s"], path: path).cleaned(default: "no-commits")
-        return RepoStatus(name: name, path: path, branch: branch, dirtyCount: dirty, remote: remote, lastCommit: last, state: dirty > 0 ? .attention : .live)
+        return RepoStatus(name: name, path: path, branch: branch, dirtyCount: dirty, remote: remote, lastCommit: last, state: state)
     }
     private func git(_ args: [String], path: String) -> ShellResult { Shell.run("/usr/bin/git", args, currentDirectory: path, timeout: 4) }
 }

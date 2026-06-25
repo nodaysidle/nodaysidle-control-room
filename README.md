@@ -26,6 +26,35 @@ Scripts/capture_screenshot.sh
 /Applications/NODAYSIDLE Control Room.app
 ```
 
+## Configuration (optional)
+
+Place a JSON config file at `~/.config/nodaysidle-control-room/config.json` to override the default watched repos and receipt roots:
+
+```json
+{
+  "repoPaths": [
+    "/path/to/your/repo1",
+    "/path/to/your/repo2"
+  ],
+  "receiptRoots": [
+    "/path/to/your/receipts"
+  ]
+}
+```
+
+If the file is missing or invalid, the app falls back to local NODAYSIDLE defaults.
+
+`Scripts/capture_screenshot.sh` writes to `${TMPDIR:-/tmp}/nodaysidle-control-room-screenshots` unless an output directory is passed explicitly.
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on macOS 15:
+- `swift test`
+- `swift build -c release`
+- `Scripts/package_app.sh`
+- codesign verification
+- SHA-256 checksums of release and bundle binaries
+
 ## NODAYSIDLE standard
 
 This repo follows the local 9.7/10 gate: specs, tests, repeatable package script, real app launch proof, screenshots, and no invented integrations.

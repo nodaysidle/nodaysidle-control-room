@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="/Applications/NODAYSIDLE Control Room.app"
-OUTDIR="${1:-/Volumes/omarchyuser/NODAYSIDLESCREENSHOTS/control-room}"
+OUTDIR="${1:-${TMPDIR:-/tmp}/nodaysidle-control-room-screenshots}"
 OUT="$OUTDIR/control-room-self-render-1280x820.png"
 mkdir -p "$OUTDIR"
 if [ ! -d "$APP" ]; then
